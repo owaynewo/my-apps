@@ -332,52 +332,45 @@ const timeGroups = { morning:[], midday:[], afternoon:[], bedtime:[] };
 supplements.forEach(s => timeGroups[s.time].push(s));
 
 // ─── STATE & STORAGE ───────────────────────────────────────────────
-async function loadState() {
+function loadState() {
   const today = new Date().toDateString();
   try {
-    const result = await window.storage.get('suppState');
-    const stored = result ? JSON.parse(result.value) : {};
+    const stored = JSON.parse(localStorage.getItem('suppState') || '{}');
     if (stored.date !== today) {
       // Day changed — check if yesterday was completed and handle streak
       const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
       const yd = yesterday.toDateString();
-      // Log yesterday if it had partial data but wasn't completed
       if (stored.date === yd && stored.checked) {
         const done = Object.values(stored.checked).filter(Boolean).length;
         if (done > 0 && done < supplements.length) {
-          await logDay(stored.date, 'partial', stored.checked, stored);
-        } else if (done === 0) {
-          // Missed day — if there was a streak, note the break
-          if (stored.streak > 0) {
-            await logDay(stored.date, 'missed', {}, stored);
-          }
+          logDay(stored.date, 'partial', stored.checked);
+        } else if (done === 0 && stored.streak > 0) {
+          logDay(stored.date, 'missed', {});
         }
       }
-      return { date: today, checked: {}, streak: stored.streak || 0, bestStreak: stored.bestStreak || 0, lastComplete: stored.lastComplete || null, history: stored.history || {} };
+      return { date: today, checked: {}, streak: stored.streak || 0, bestStreak: stored.bestStreak || 0, lastComplete: stored.lastComplete || null, appStartDate: stored.appStartDate || null };
     }
-    return { date: today, checked: stored.checked||{}, streak: stored.streak||0, bestStreak: stored.bestStreak||0, lastComplete: stored.lastComplete||null, history: stored.history||{} };
+    return { date: today, checked: stored.checked||{}, streak: stored.streak||0, bestStreak: stored.bestStreak||0, lastComplete: stored.lastComplete||null, appStartDate: stored.appStartDate||null };
   } catch {
-    return { date: today, checked:{}, streak:0, bestStreak:0, lastComplete:null, history:{} };
+    return { date: today, checked:{}, streak:0, bestStreak:0, lastComplete:null, appStartDate:null };
   }
 }
 
-async function logDay(dateStr, status, checked, existingState) {
+function logDay(dateStr, status, checked) {
   try {
-    const result = await window.storage.get('suppHistory');
-    const history = result ? JSON.parse(result.value) : {};
+    const history = JSON.parse(localStorage.getItem('suppHistory') || '{}');
     history[dateStr] = { status, count: Object.values(checked).filter(Boolean).length, total: supplements.length };
-    await window.storage.set('suppHistory', JSON.stringify(history));
+    localStorage.setItem('suppHistory', JSON.stringify(history));
   } catch(e) {}
 }
 
-async function saveState(s) {
-  try { await window.storage.set('suppState', JSON.stringify(s)); } catch(e) {}
+function saveState(s) {
+  try { localStorage.setItem('suppState', JSON.stringify(s)); } catch(e) {}
 }
 
-async function loadHistory() {
+function loadHistory() {
   try {
-    const result = await window.storage.get('suppHistory');
-    return result ? JSON.parse(result.value) : {};
+    return JSON.parse(localStorage.getItem('suppHistory') || '{}');
   } catch { return {}; }
 }
 
@@ -402,8 +395,8 @@ async function updateProgress() {
       state.lastComplete = state.date;
       // Log to history
       history[state.date] = { status:'complete', count:total, total };
-      await window.storage.set('suppHistory', JSON.stringify(history));
-      await saveState(state);
+      localStorage.setItem('suppHistory', JSON.stringify(history));
+      saveState(state);
       renderStats();
       renderCalendar();
     }
@@ -412,7 +405,7 @@ async function updateProgress() {
     // Log partial to history
     if (done > 0) {
       history[state.date] = { status:'partial', count:done, total };
-      await window.storage.set('suppHistory', JSON.stringify(history));
+      localStorage.setItem('suppHistory', JSON.stringify(history));
     }
   }
 }
@@ -436,7 +429,7 @@ function renderTrackerItems() {
         </div>`;
       div.onclick = async () => {
         state.checked[supp.id] = !state.checked[supp.id];
-        await saveState(state);
+        saveState(state);
         renderTrackerItems();
         await updateProgress();
       };
@@ -448,8 +441,8 @@ function renderTrackerItems() {
 async function resetToday() {
   state.checked = {};
   delete history[state.date];
-  await saveState(state);
-  await window.storage.set('suppHistory', JSON.stringify(history));
+  saveState(state);
+  localStorage.setItem('suppHistory', JSON.stringify(history));
   renderTrackerItems();
   await updateProgress();
   renderStats();
@@ -632,13 +625,13 @@ document.getElementById('dateBadge').textContent = now.toLocaleDateString('en-SG
 drawIcon();
 
 async function init() {
-  state = await loadState();
-  history = await loadHistory();
+  state = loadState();
+  history = loadHistory();
 
   // Set app start date if first time
   if (!state.appStartDate) {
     state.appStartDate = new Date().toDateString();
-    await saveState(state);
+    saveState(state);
   }
 
   const loader = document.getElementById('loadingMsg');
