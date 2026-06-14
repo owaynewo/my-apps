@@ -1,0 +1,662 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>My Stack</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="My Stack">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0f1117">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgo=">
+<style> html { background: #0f1117; } </style>
+<script>
+const _manifest = {
+  name:"My Supplement Stack",short_name:"My Stack",start_url:".",
+  display:"standalone",background_color:"#0f1117",theme_color:"#0f1117",orientation:"portrait"
+};
+const _blob = new Blob([JSON.stringify(_manifest)],{type:"application/json"});
+document.write('<link rel="manifest" href="'+URL.createObjectURL(_blob)+'">');
+</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0f1117; --surface:#181c27; --surface2:#1f2535;
+  --border:rgba(255,255,255,0.07); --border2:rgba(255,255,255,0.13);
+  --text:#f0ede8; --text-muted:#7a8099; --text-dim:#4a5068;
+  --accent:#c8f55a; --accent2:#5af0c8; --accent3:#f0a05a; --accent4:#c85af0;
+  --morning:#f0a05a; --midday:#5af0c8; --afternoon:#c85af0; --bedtime:#5a8af0;
+  --success:#c8f55a; --fail:#f05a5a; --empty:#1f2535;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;font-size:15px;line-height:1.6;padding-bottom:env(safe-area-inset-bottom);}
+.app-header{padding:max(2rem,env(safe-area-inset-top)) 1.25rem 1rem;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:100;}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;}
+.app-title{font-family:'DM Serif Display',serif;font-size:22px;color:var(--text);line-height:1.2;}
+.app-subtitle{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.date-badge{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--text-muted);white-space:nowrap;}
+.progress-bar-wrap{background:var(--surface2);border-radius:99px;height:5px;overflow:hidden;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px;transition:width 0.5s ease;}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:5px;}
+.tab-nav{display:flex;gap:0;background:var(--surface2);border-radius:10px;padding:3px;margin:1rem 1.25rem 0;}
+.tab-nav button{flex:1;background:none;border:none;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:7px 2px;border-radius:8px;cursor:pointer;transition:all 0.2s;}
+.tab-nav button.active{background:var(--bg);color:var(--text);}
+.tab-content{display:none;padding:1.25rem;}
+.tab-content.active{display:block;}
+
+/* TRACKER */
+.time-block{margin-bottom:1.5rem;}
+.time-header{display:flex;align-items:center;gap:8px;margin-bottom:0.6rem;}
+.time-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.time-name{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);}
+.time-sub{font-size:11px;color:var(--text-dim);margin-left:auto;}
+.supp-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:0.75rem 1rem;margin-bottom:6px;cursor:pointer;transition:all 0.2s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.supp-item:active{transform:scale(0.98);}
+.supp-item.checked{border-color:rgba(200,245,90,0.25);background:rgba(200,245,90,0.05);}
+.check-circle{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;font-size:13px;}
+.supp-item.checked .check-circle{background:var(--accent);border-color:var(--accent);color:#0f1117;}
+.supp-info{flex:1;min-width:0;}
+.supp-name-sm{font-size:14px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.supp-item.checked .supp-name-sm{color:var(--text-muted);text-decoration:line-through;}
+.supp-dose-sm{font-size:11px;color:var(--text-dim);margin-top:1px;}
+.color-tag{width:3px;border-radius:99px;height:32px;flex-shrink:0;}
+.reset-btn{display:block;width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;color:var(--text-muted);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px;cursor:pointer;margin-top:1rem;transition:all 0.2s;}
+.reset-btn:active{opacity:0.7;}
+.all-done{text-align:center;padding:1.5rem 1rem;display:none;}
+.all-done-icon{font-size:40px;margin-bottom:0.5rem;}
+.all-done-title{font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent);margin-bottom:4px;}
+.all-done-sub{font-size:13px;color:var(--text-muted);}
+
+/* GUIDE */
+.guide-section{margin-bottom:1.5rem;}
+.guide-section-title{font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;}
+.guide-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:8px;}
+.guide-card-header{display:flex;align-items:center;gap:10px;padding:0.85rem 1rem;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.guide-card-header:active{opacity:0.8;}
+.guide-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.guide-card-name{font-size:14px;font-weight:500;flex:1;}
+.chevron{color:var(--text-dim);font-size:12px;transition:transform 0.25s;margin-left:4px;}
+.guide-card.open .chevron{transform:rotate(180deg);}
+.guide-card-body{display:none;padding:0 1rem 1rem;border-top:1px solid var(--border);}
+.guide-card.open .guide-card-body{display:block;}
+.guide-card-dose{font-size:11px;color:var(--text-dim);margin-bottom:8px;padding-top:0.75rem;}
+.guide-card-purpose{font-size:13px;color:var(--text-muted);line-height:1.65;}
+
+/* COVERAGE */
+.cov-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1rem;}
+.cov-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.85rem;}
+.cov-tile-icon{font-size:20px;margin-bottom:6px;}
+.cov-tile-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:5px;}
+.cov-tile-list{font-size:11px;color:var(--text-dim);line-height:1.8;}
+.summary-card{background:linear-gradient(135deg,rgba(200,245,90,0.08),rgba(90,240,200,0.06));border:1px solid rgba(200,245,90,0.2);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem;}
+.summary-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--accent);margin-bottom:6px;}
+.summary-text{font-size:13px;color:var(--text-muted);line-height:1.65;}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.cost-row:last-child{border-bottom:none;}
+.cost-label{color:var(--text-muted);}
+.cost-value{color:var(--text);font-weight:500;}
+.cost-total{color:var(--accent);font-weight:600;}
+.tip-box{background:var(--surface2);border-left:3px solid var(--accent3);border-radius:0 10px 10px 0;padding:0.75rem 1rem;margin-top:1rem;font-size:12px;color:var(--text-muted);line-height:1.6;}
+
+/* STATS TAB */
+.streak-hero{background:linear-gradient(135deg,rgba(200,245,90,0.1),rgba(90,240,200,0.06));border:1px solid rgba(200,245,90,0.2);border-radius:18px;padding:1.5rem 1rem;text-align:center;margin-bottom:1rem;}
+.streak-number{font-family:'DM Serif Display',serif;font-size:72px;color:var(--accent);line-height:1;margin-bottom:4px;}
+.streak-label{font-size:13px;color:var(--text-muted);margin-bottom:1rem;}
+.streak-fire{font-size:32px;margin-bottom:8px;}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:1rem;}
+.stat-tile{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:0.85rem 0.5rem;text-align:center;}
+.stat-num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--text);margin-bottom:2px;}
+.stat-lbl{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.06em;line-height:1.3;}
+
+/* CALENDAR */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.cal-month{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);}
+.cal-nav{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--text-muted);font-size:16px;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.cal-nav:active{opacity:0.6;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem;}
+.cal-dow{font-size:10px;font-weight:600;text-transform:uppercase;color:var(--text-dim);text-align:center;padding:4px 0;}
+.cal-day{aspect-ratio:1;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;position:relative;cursor:default;}
+.cal-day.empty{background:transparent;}
+.cal-day.future{color:var(--text-dim);}
+.cal-day.success{background:rgba(200,245,90,0.2);color:var(--accent);border:1px solid rgba(200,245,90,0.35);}
+.cal-day.fail{background:rgba(240,90,90,0.15);color:#f07a7a;border:1px solid rgba(240,90,90,0.25);}
+.cal-day.today{box-shadow:0 0 0 2px var(--accent);}
+.cal-day.partial{background:rgba(240,160,90,0.15);color:var(--accent3);border:1px solid rgba(240,160,90,0.25);}
+.cal-legend{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);}
+.leg-dot{width:10px;height:10px;border-radius:3px;}
+
+@keyframes pulse{0%,100%{opacity:0.3;transform:scaleX(0.5)}50%{opacity:1;transform:scaleX(1)}}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">My Stack</div>
+      <div class="app-subtitle">45M · Daily supplement tracker</div>
+    </div>
+    <div class="date-badge" id="dateBadge"></div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+  </div>
+  <div class="progress-label">
+    <span id="progressText">0 of 8 taken today</span>
+    <span id="progressPct">0%</span>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="active" onclick="switchTab('tracker',this)">Today</button>
+  <button onclick="switchTab('stats',this)">Stats</button>
+  <button onclick="switchTab('guide',this)">Guide</button>
+  <button onclick="switchTab('coverage',this)">Coverage</button>
+</div>
+
+<!-- TRACKER TAB -->
+<div id="tab-tracker" class="tab-content active">
+  <div id="loadingMsg" style="text-align:center;padding:2rem;color:var(--text-muted);font-size:13px;">Loading your data...</div>
+
+  <div class="time-block">
+    <div class="time-header">
+      <div class="time-dot" style="background:var(--morning)"></div>
+      <span class="time-name">Morning</span>
+      <span class="time-sub">With fatty meal</span>
+    </div>
+    <div id="morning-items"></div>
+  </div>
+  <div class="time-block">
+    <div class="time-header">
+      <div class="time-dot" style="background:var(--midday)"></div>
+      <span class="time-name">Midday</span>
+      <span class="time-sub">With lunch</span>
+    </div>
+    <div id="midday-items"></div>
+  </div>
+  <div class="time-block">
+    <div class="time-header">
+      <div class="time-dot" style="background:var(--afternoon)"></div>
+      <span class="time-name">Afternoon</span>
+      <span class="time-sub">Empty stomach</span>
+    </div>
+    <div id="afternoon-items"></div>
+  </div>
+  <div class="time-block">
+    <div class="time-header">
+      <div class="time-dot" style="background:var(--bedtime)"></div>
+      <span class="time-name">Bedtime</span>
+      <span class="time-sub">30–60 min before sleep</span>
+    </div>
+    <div id="bedtime-items"></div>
+  </div>
+
+  <div class="all-done" id="allDone">
+    <div class="all-done-icon">🎯</div>
+    <div class="all-done-title">All done for today!</div>
+    <div class="all-done-sub">Streak updated. Keep it going!</div>
+  </div>
+  <button class="reset-btn" onclick="resetToday()">↺ Reset today</button>
+</div>
+
+<!-- STATS TAB -->
+<div id="tab-stats" class="tab-content">
+  <div class="streak-hero">
+    <div class="streak-fire" id="streakFire">🔥</div>
+    <div class="streak-number" id="streakBig">0</div>
+    <div class="streak-label">day streak</div>
+    <div id="streakMsg" style="font-size:12px;color:var(--accent);font-weight:500;min-height:18px"></div>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-tile">
+      <div class="stat-num" id="statTotal">0</div>
+      <div class="stat-lbl">Total Days Complete</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" id="statBest">0</div>
+      <div class="stat-lbl">Best Streak</div>
+    </div>
+    <div class="stat-tile">
+      <div class="stat-num" id="statRate">0%</div>
+      <div class="stat-lbl">Completion Rate</div>
+    </div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem;margin-bottom:1rem;">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="calPrev()">‹</button>
+      <div class="cal-month" id="calMonthLabel"></div>
+      <button class="cal-nav" onclick="calNext()">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-legend">
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(200,245,90,0.4);border:1px solid rgba(200,245,90,0.5)"></div>Complete</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(240,90,90,0.3);border:1px solid rgba(240,90,90,0.4)"></div>Missed</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(240,160,90,0.3);border:1px solid rgba(240,160,90,0.4)"></div>Partial</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--surface2)"></div>Future</div>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong style="color:var(--accent3)">Streak rules:</strong> Complete all 8 supplements in a day to add to your streak. Missing a day resets it to zero. Partial days (some taken) show in amber but don't count toward your streak.
+  </div>
+</div>
+
+<!-- GUIDE TAB -->
+<div id="tab-guide" class="tab-content">
+  <div class="guide-section">
+    <div class="guide-section-title">Your Active Stack</div>
+    <div id="guide-all"></div>
+  </div>
+  <div class="tip-box">
+    <strong style="color:var(--accent3)">Key rules:</strong> Never take zinc and magnesium together. Fat-soluble supplements (D3+K2, Omega-3) need a fatty meal. B-Complex in the morning avoids sleep disruption.
+  </div>
+</div>
+
+<!-- COVERAGE TAB -->
+<div id="tab-coverage" class="tab-content">
+  <div class="summary-card">
+    <div class="summary-title">Comprehensively covered</div>
+    <div class="summary-text">With 8 supplements you have full coverage across every major health pillar that matters at 45 — hormones, heart, joints, bones, immunity, sleep, gut, and brain.</div>
+  </div>
+  <div class="cov-grid">
+    <div class="cov-tile"><div class="cov-tile-icon">❤️</div><div class="cov-tile-title">Heart</div><div class="cov-tile-list">Omega-3<br>Magnesium<br>B-Complex<br>Vitamin C</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">⚡</div><div class="cov-tile-title">Hormones</div><div class="cov-tile-list">Zinc<br>Vitamin D3<br>Magnesium<br>Omega-3</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">🦴</div><div class="cov-tile-title">Joints & Bones</div><div class="cov-tile-list">CurcuminUP<br>D3 + K2<br>Magnesium<br>Vitamin C</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">🛡️</div><div class="cov-tile-title">Immunity</div><div class="cov-tile-list">Vitamin C<br>Vitamin D3<br>Zinc<br>Probiotic</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">😴</div><div class="cov-tile-title">Sleep</div><div class="cov-tile-list">Magnesium<br>B-Complex<br>Omega-3</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">🧠</div><div class="cov-tile-title">Brain & Energy</div><div class="cov-tile-list">B-Complex<br>Omega-3<br>Magnesium<br>Vitamin D3</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">🦠</div><div class="cov-tile-title">Gut</div><div class="cov-tile-list">Probiotic<br>Vitamin C<br>Omega-3</div></div>
+    <div class="cov-tile"><div class="cov-tile-icon">🔥</div><div class="cov-tile-title">Inflammation</div><div class="cov-tile-list">CurcuminUP<br>Omega-3<br>Vitamin C<br>Zinc</div></div>
+  </div>
+  <div class="guide-section-title" style="margin-bottom:0.6rem">Monthly cost estimate (iHerb, SGD)</div>
+  <div class="guide-card" style="margin-bottom:1rem">
+    <div style="padding:0.5rem 1rem;">
+      <div class="cost-row"><span class="cost-label">Doctor's Best Magnesium (autoship)</span><span class="cost-value">SG$27.38</span></div>
+      <div class="cost-row"><span class="cost-label">CGN Omega 800</span><span class="cost-value">SG$34.80</span></div>
+      <div class="cost-row"><span class="cost-label">CGN Vitamin D3 + K2 MK-7</span><span class="cost-value">SG$20.99</span></div>
+      <div class="cost-row"><span class="cost-label">NOW Zinc Glycinate</span><span class="cost-value">SG$15.38</span></div>
+      <div class="cost-row"><span class="cost-label">NOW B-100 Complex</span><span class="cost-value">SG$51.20</span></div>
+      <div class="cost-row"><span class="cost-label">NOW Vitamin C-1000</span><span class="cost-value">SG$13.06</span></div>
+      <div class="cost-row"><span class="cost-label">CGN LactoBif Probiotics</span><span class="cost-value">SG$22.61</span></div>
+      <div class="cost-row"><span class="cost-label">CGN CurcuminUP</span><span class="cost-value">~SG$20</span></div>
+      <div class="cost-row"><span class="cost-label" style="font-weight:600;color:var(--text)">Total stack/month</span><span class="cost-total">~SG$205</span></div>
+    </div>
+  </div>
+  <div class="tip-box"><strong style="color:var(--accent3)">Next step:</strong> Get bloodwork done — Vitamin D, B12, testosterone, magnesium levels. Dial in exact doses based on your actual deficiencies.</div>
+</div>
+
+<!-- SPLASH -->
+<div id="splashScreen" style="position:fixed;inset:0;z-index:9999;background:#0f1117;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 0.5s ease;">
+  <canvas id="iconCanvas" width="120" height="120" style="border-radius:26px;margin-bottom:20px;box-shadow:0 8px 32px rgba(200,245,90,0.2)"></canvas>
+  <div style="font-family:'DM Serif Display',serif;font-size:28px;color:#f0ede8;margin-bottom:6px">My Stack</div>
+  <div style="font-size:13px;color:#7a8099">45M · Daily supplement tracker</div>
+  <div style="margin-top:32px;width:40px;height:3px;background:linear-gradient(90deg,#c8f55a,#5af0c8);border-radius:99px;animation:pulse 1.2s ease-in-out infinite"></div>
+</div>
+
+<script>
+// ─── SUPPLEMENT DATA ───────────────────────────────────────────────
+const supplements = [
+  { id:'omega3', name:'CGN Omega 800', dose:'California Gold Nutrition · 1 softgel/day · 800mg EPA+DHA', time:'morning', color:'var(--morning)', icon:'🐟',
+    purpose:'Heart health, brain function, anti-inflammatory. Triglyceride form absorbs 70% better than standard fish oil for proper EPA+DHA dosing.',
+    timing:'Omega-3 is fat-soluble and requires dietary fat to absorb properly into your bloodstream. Breakfast is typically your best fatty meal. Taking it in the morning means the anti-inflammatory effect is active throughout your most active hours.' },
+  { id:'d3k2', name:'Vitamin D3 + K2 MK-7', dose:'California Gold Nutrition · 180 caps · 5000 IU D3 + MK-7', time:'morning', color:'var(--morning)', icon:'☀️',
+    purpose:'Testosterone production, bone density, immune function. MK-7 form of K2 is longer-acting and more effective. K2 directs calcium to bones, not arteries.',
+    timing:'Vitamin D3 is fat-soluble and must be taken with a fatty meal. D3 also mimics natural sunlight exposure which your body processes during daytime. Taking it at night can theoretically interfere with melatonin production and disrupt sleep in some people.' },
+  { id:'vitc', name:'Vitamin C 1000mg', dose:'NOW Foods · With Rose Hips & Bioflavonoids · 100 tabs', time:'morning', color:'var(--morning)', icon:'🍊',
+    purpose:'Immune defence, collagen synthesis, antioxidant protection. Rose hips and bioflavonoids boost bioavailability and absorption.',
+    timing:'Vitamin C is water-soluble and absorbs quickly regardless of food. Morning timing kick-starts immune defence for the day and supports collagen synthesis during active hours. It also enhances iron absorption from your morning meal.' },
+  { id:'bcomplex', name:'B-100 Complex', dose:'NOW Foods · 250 veg caps · Full B spectrum', time:'morning', color:'var(--morning)', icon:'⚡',
+    purpose:'Energy metabolism, nervous system support, red blood cell production. B12 and B6 deficiencies are common in men over 40 and linked to fatigue and cognitive decline.',
+    timing:'B vitamins are direct fuel for cellular energy production (ATP). Taking them in the morning gives you the energy boost when you need it. B vitamins taken in the evening can be stimulating and interfere with sleep quality. Always take with food to avoid nausea.' },
+  { id:'curcumin', name:'CGN CurcuminUP', dose:'California Gold Nutrition · Curcumin · Boswellia · Ginger · Omega-3', time:'midday', color:'var(--midday)', icon:'🦵',
+    purpose:'Reduces systemic inflammation, supports joint mobility. Same core anti-inflammatory trio as JointPlex Pro plus omega-3 and black cumin seed oil.',
+    timing:'Curcumin has very poor absorption on its own and requires fat and food to maximise bioavailability. Splitting anti-inflammatory support across morning (Omega-3) and midday (CurcuminUP) gives more sustained coverage throughout the day rather than a single hit.' },
+  { id:'zinc', name:'Zinc Glycinate 30mg', dose:'NOW Foods · 120 softgels · Not with Magnesium', time:'midday', color:'var(--midday)', icon:'🔩',
+    purpose:'Testosterone support, immune function, prostate health. Glycinate form is gentler on the stomach. Zinc levels decline with age in men.',
+    timing:'Separated from Magnesium at bedtime because zinc and magnesium compete for the same absorption pathways in the gut. Taking them together reduces how much of each you absorb. With food at lunch also prevents the nausea that zinc can cause on an empty stomach.' },
+  { id:'probiotic', name:'LactoBif 5 Probiotics', dose:'California Gold Nutrition · 120 caps · 5 Billion CFU', time:'afternoon', color:'var(--afternoon)', icon:'🦠',
+    purpose:'Gut microbiome balance, digestive health, immune modulation. 5 Billion CFU is sufficient for general maintenance in a healthy person. Affects nutrient absorption and mood.',
+    timing:'Ideally taken 30 minutes before a meal on a relatively empty stomach. Stomach acid levels are lower at this point, giving live bacteria a better chance of surviving transit to your intestines. Afternoon before dinner is a practical sweet spot — stomach is emptier but a meal is coming to help carry bacteria through.' },
+  { id:'magnesium', name:'Magnesium Glycinate 300mg', dose:"Doctor's Best · 240 tabs · 3 tablets/day", time:'bedtime', color:'var(--bedtime)', icon:'🌙',
+    purpose:"Sleep quality, muscle relaxation, heart rhythm, testosterone. Lysinate Glycinate is the best-absorbed form. Most common mineral deficiency in men over 40.",
+    timing:"Magnesium activates the parasympathetic nervous system (rest and digest mode) and raises GABA levels — your brain's calming neurotransmitter — which directly improves sleep quality and reduces the time to fall asleep. Muscle repair and recovery happen during sleep, and magnesium supports this process. Take 30–60 minutes before sleep." },
+];
+
+const timeGroups = { morning:[], midday:[], afternoon:[], bedtime:[] };
+supplements.forEach(s => timeGroups[s.time].push(s));
+
+// ─── STATE & STORAGE ───────────────────────────────────────────────
+async function loadState() {
+  const today = new Date().toDateString();
+  try {
+    const result = await window.storage.get('suppState');
+    const stored = result ? JSON.parse(result.value) : {};
+    if (stored.date !== today) {
+      // Day changed — check if yesterday was completed and handle streak
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+      const yd = yesterday.toDateString();
+      // Log yesterday if it had partial data but wasn't completed
+      if (stored.date === yd && stored.checked) {
+        const done = Object.values(stored.checked).filter(Boolean).length;
+        if (done > 0 && done < supplements.length) {
+          await logDay(stored.date, 'partial', stored.checked, stored);
+        } else if (done === 0) {
+          // Missed day — if there was a streak, note the break
+          if (stored.streak > 0) {
+            await logDay(stored.date, 'missed', {}, stored);
+          }
+        }
+      }
+      return { date: today, checked: {}, streak: stored.streak || 0, bestStreak: stored.bestStreak || 0, lastComplete: stored.lastComplete || null, history: stored.history || {} };
+    }
+    return { date: today, checked: stored.checked||{}, streak: stored.streak||0, bestStreak: stored.bestStreak||0, lastComplete: stored.lastComplete||null, history: stored.history||{} };
+  } catch {
+    return { date: today, checked:{}, streak:0, bestStreak:0, lastComplete:null, history:{} };
+  }
+}
+
+async function logDay(dateStr, status, checked, existingState) {
+  try {
+    const result = await window.storage.get('suppHistory');
+    const history = result ? JSON.parse(result.value) : {};
+    history[dateStr] = { status, count: Object.values(checked).filter(Boolean).length, total: supplements.length };
+    await window.storage.set('suppHistory', JSON.stringify(history));
+  } catch(e) {}
+}
+
+async function saveState(s) {
+  try { await window.storage.set('suppState', JSON.stringify(s)); } catch(e) {}
+}
+
+async function loadHistory() {
+  try {
+    const result = await window.storage.get('suppHistory');
+    return result ? JSON.parse(result.value) : {};
+  } catch { return {}; }
+}
+
+let state = { date: new Date().toDateString(), checked:{}, streak:0, bestStreak:0, lastComplete:null, history:{} };
+let history = {};
+
+// ─── PROGRESS ─────────────────────────────────────────────────────
+async function updateProgress() {
+  const total = supplements.length;
+  const done = Object.values(state.checked).filter(Boolean).length;
+  const pct = Math.round((done/total)*100);
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = done+' of '+total+' taken today';
+  document.getElementById('progressPct').textContent = pct+'%';
+
+  const allDone = document.getElementById('allDone');
+  if (done === total) {
+    allDone.style.display = 'block';
+    if (!state.lastComplete || state.lastComplete !== state.date) {
+      state.streak = (state.streak||0) + 1;
+      if (state.streak > (state.bestStreak||0)) state.bestStreak = state.streak;
+      state.lastComplete = state.date;
+      // Log to history
+      history[state.date] = { status:'complete', count:total, total };
+      await window.storage.set('suppHistory', JSON.stringify(history));
+      await saveState(state);
+      renderStats();
+      renderCalendar();
+    }
+  } else {
+    allDone.style.display = 'none';
+    // Log partial to history
+    if (done > 0) {
+      history[state.date] = { status:'partial', count:done, total };
+      await window.storage.set('suppHistory', JSON.stringify(history));
+    }
+  }
+}
+
+// ─── TRACKER ──────────────────────────────────────────────────────
+function renderTrackerItems() {
+  ['morning','midday','afternoon','bedtime'].forEach(time => {
+    const container = document.getElementById(time+'-items');
+    if (!container) return;
+    container.innerHTML = '';
+    timeGroups[time].forEach(supp => {
+      const checked = state.checked[supp.id];
+      const div = document.createElement('div');
+      div.className = 'supp-item'+(checked?' checked':'');
+      div.innerHTML = `
+        <div class="color-tag" style="background:${supp.color}"></div>
+        <div class="check-circle">${checked?'✓':''}</div>
+        <div class="supp-info">
+          <div class="supp-name-sm">${supp.name}</div>
+          <div class="supp-dose-sm">${supp.dose}</div>
+        </div>`;
+      div.onclick = async () => {
+        state.checked[supp.id] = !state.checked[supp.id];
+        await saveState(state);
+        renderTrackerItems();
+        await updateProgress();
+      };
+      container.appendChild(div);
+    });
+  });
+}
+
+async function resetToday() {
+  state.checked = {};
+  delete history[state.date];
+  await saveState(state);
+  await window.storage.set('suppHistory', JSON.stringify(history));
+  renderTrackerItems();
+  await updateProgress();
+  renderStats();
+  renderCalendar();
+}
+
+// ─── STATS ────────────────────────────────────────────────────────
+function renderStats() {
+  const streak = state.streak || 0;
+  const best = state.bestStreak || 0;
+
+  // Streak hero
+  document.getElementById('streakBig').textContent = streak;
+  const fire = document.getElementById('streakFire');
+  if (streak === 0) fire.textContent = '💤';
+  else if (streak < 7) fire.textContent = '🔥';
+  else if (streak < 30) fire.textContent = '🔥🔥';
+  else fire.textContent = '🔥🔥🔥';
+
+  const msgs = ['', 'Great start!', 'Keep going!', '3 days strong!', '', '', '', 'One week! 🎉', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'One month! 🏆'];
+  document.getElementById('streakMsg').textContent = msgs[streak] || (streak > 0 ? streak+' days and counting!' : 'Complete all supplements to start your streak');
+
+  // Count totals from history
+  const allDays = Object.values(history);
+  const totalComplete = allDays.filter(d => d.status === 'complete').length;
+  const totalDays = allDays.filter(d => d.status !== 'future').length;
+  const rate = totalDays > 0 ? Math.round((totalComplete/totalDays)*100) : 0;
+
+  document.getElementById('statTotal').textContent = totalComplete;
+  document.getElementById('statBest').textContent = best;
+  document.getElementById('statRate').textContent = rate+'%';
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────────
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+
+function calPrev() {
+  calMonth--;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function calNext() {
+  calMonth++;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = monthNames[calMonth]+' '+calYear;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  // Day of week headers
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const today = new Date();
+  const todayStr = today.toDateString();
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(calYear, calMonth, d);
+    const dateStr = date.toDateString();
+    const isToday = dateStr === todayStr;
+    const isFuture = date > today && !isToday;
+
+    const el = document.createElement('div');
+    el.textContent = d;
+
+    let cls = 'cal-day';
+    if (isToday) cls += ' today';
+
+    if (isFuture) {
+      cls += ' future';
+    } else {
+      const rec = history[dateStr];
+      if (rec) {
+        if (rec.status === 'complete') cls += ' success';
+        else if (rec.status === 'partial') cls += ' partial';
+        else if (rec.status === 'missed') cls += ' fail';
+      } else if (!isToday) {
+        // Past day with no record = missed (only if we've been tracking)
+        const appStart = state.appStartDate;
+        if (appStart && new Date(appStart) <= date) {
+          cls += ' fail';
+        }
+      }
+      // Today with partial progress
+      if (isToday && !history[dateStr]?.status?.includes('complete')) {
+        const done = Object.values(state.checked).filter(Boolean).length;
+        if (done > 0 && done < supplements.length) cls += ' partial';
+      }
+    }
+
+    el.className = cls;
+    el.title = dateStr;
+    grid.appendChild(el);
+  }
+}
+
+// ─── GUIDE ────────────────────────────────────────────────────────
+function renderGuide() {
+  const container = document.getElementById('guide-all');
+  container.innerHTML = '';
+  supplements.forEach(supp => {
+    const timeLabel = {morning:'Morning',midday:'Midday',afternoon:'Afternoon',bedtime:'Bedtime'}[supp.time];
+    const timeColor = {morning:'var(--morning)',midday:'var(--midday)',afternoon:'var(--afternoon)',bedtime:'var(--bedtime)'}[supp.time];
+    const card = document.createElement('div');
+    card.className = 'guide-card';
+    card.innerHTML = `
+      <div class="guide-card-header" onclick="toggleGuideCard(this)">
+        <div class="guide-icon" style="background:rgba(255,255,255,0.04)">${supp.icon}</div>
+        <div class="guide-card-name">${supp.name}</div>
+        <span style="font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;background:rgba(255,255,255,0.06);color:${timeColor}">${timeLabel}</span>
+        <span class="chevron">▾</span>
+      </div>
+      <div class="guide-card-body">
+        <div class="guide-card-dose">${supp.dose}</div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-dim);margin:10px 0 4px">What it does</div>
+        <div class="guide-card-purpose">${supp.purpose}</div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${timeColor};margin:12px 0 4px">⏰ Why ${timeLabel}</div>
+        <div class="guide-card-purpose" style="color:var(--text-muted)">${supp.timing}</div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function toggleGuideCard(header) {
+  header.parentElement.classList.toggle('open');
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'stats') { renderStats(); renderCalendar(); }
+}
+
+// ─── ICON ─────────────────────────────────────────────────────────
+function drawIcon() {
+  const canvas = document.getElementById('iconCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const s = 120;
+  ctx.fillStyle = '#0f1117';
+  ctx.beginPath(); ctx.roundRect(0,0,s,s,22); ctx.fill();
+  const grad = ctx.createRadialGradient(s/2,s/2,10,s/2,s/2,55);
+  grad.addColorStop(0,'rgba(200,245,90,0.15)'); grad.addColorStop(1,'rgba(90,240,200,0.05)');
+  ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(s/2,s/2,50,0,Math.PI*2); ctx.fill();
+  ctx.font = '52px serif'; ctx.textAlign = 'center'; ctx.fillText('💊',s/2,62);
+  ctx.font = 'bold 13px sans-serif'; ctx.fillStyle = '#c8f55a'; ctx.fillText('STACK',s/2,100);
+  try {
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('link'); link.rel='apple-touch-icon'; link.href=dataUrl;
+    document.head.appendChild(link);
+  } catch(e) {}
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────
+const now = new Date();
+document.getElementById('dateBadge').textContent = now.toLocaleDateString('en-SG',{weekday:'short',day:'numeric',month:'short'});
+drawIcon();
+
+async function init() {
+  state = await loadState();
+  history = await loadHistory();
+
+  // Set app start date if first time
+  if (!state.appStartDate) {
+    state.appStartDate = new Date().toDateString();
+    await saveState(state);
+  }
+
+  const loader = document.getElementById('loadingMsg');
+  if (loader) loader.remove();
+
+  renderTrackerItems();
+  renderGuide();
+  await updateProgress();
+}
+
+init();
+
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const splash = document.getElementById('splashScreen');
+    if (splash) { splash.style.opacity='0'; setTimeout(()=>splash.remove(),500); }
+  }, 1200);
+});
+</script>
+</body>
+</html>
